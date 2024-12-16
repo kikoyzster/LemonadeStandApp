@@ -1,0 +1,128 @@
+﻿@page "/"
+@using LemonadeStandApp.Interfaces
+@inject IFruitPressService FruitPressService
+
+<div class="container mt-4">
+    <h3 class="text-center">Available Recipes</h3>
+    <div class="row">
+        @foreach (var recipe in Recipes)
+        {
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@recipe.Name</h5>
+                        <p class="card-text">Price per glass: @recipe.PricePerGlass</p>
+                        <p class="card-text">Fruits needed per glass: @recipe.ConsumptionPerGlass</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="container mt-5">
+    <h1 class="text-center text-primary">Lemonade Stand</h1>
+    <p class="text-center">Manage your juice sales efficiently!</p>
+
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <form>
+                <!-- Välj typ av juice -->
+                <div class="form-group mb-3">
+                    <label for="juiceType">Select Juice Type</label>
+                    <select id="juiceType" class="form-control" @bind="SelectedJuice">
+                        @foreach (var recipe in Recipes)
+                        {
+                            <option value="@recipe.Name">@recipe.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Ange mängden glas -->
+                <div class="form-group mb-3">
+                    <label for="quantity">Quantity (Glasses)</label>
+                    <input type="number" id="quantity" class="form-control" @bind="Quantity" />
+                </div>
+
+                <!-- Ange betalat belopp -->
+                <div class="form-group mb-3">
+                    <label for="moneyPaid">Money Paid</label>
+                    <input type="number" id="moneyPaid" class="form-control" @bind="MoneyPaid" />
+                </div>
+
+                <!-- Lagerstatus för varje typ av frukt -->
+                <div class="form-group mb-3">
+                    <label for="appleStock">Apple Stock</label>
+                    <input type="number" id="appleStock" class="form-control" @bind="AppleStock" />
+                </div>
+                <div class="form-group mb-3">
+                    <label for="orangeStock">Orange Stock</label>
+                    <input type="number" id="orangeStock" class="form-control" @bind="OrangeStock" />
+                </div>
+                <div class="form-group mb-3">
+                    <label for="melonStock">Melon Stock</label>
+                    <input type="number" id="melonStock" class="form-control" @bind="MelonStock" />
+                </div>
+
+                <!-- Skicka beställningen -->
+                <button type="button" class="btn btn-primary" @onclick="ProcessOrder">Submit</button>
+            </form>
+
+            <!-- Visa resultat efter bearbetning -->
+            <div class="mt-4">
+                @if (Result != null)
+                {
+                    <div class="alert @(Result.IsSuccess ? "alert-success" : "alert-danger")">
+                        @Result.Message
+                    </div>
+                    @if (Result.IsSuccess)
+                    {
+                        <p>Remaining Fruit: @Result.RemainingFruit</p>
+                        <p>Change: @Result.Change</p>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    // Lista över tillgängliga recept
+    private List<Recipe> Recipes = new List<Recipe>
+    {
+            new Recipe { Name = "Apple Juice", ConsumptionPerGlass = 2.5M, PricePerGlass = 10, AllowedFruit = typeof(Fruit) },
+            new Recipe { Name = "Orange Juice", ConsumptionPerGlass = 1.5M, PricePerGlass = 9, AllowedFruit = typeof(Fruit) },
+            new Recipe { Name = "Melon Juice", ConsumptionPerGlass = 3.0M, PricePerGlass = 12, AllowedFruit = typeof(Fruit) }
+    };
+
+    // Lagerstatus för frukt
+    private int AppleStock = 0;
+    private int OrangeStock = 0;
+    private int MelonStock = 0;
+
+    // Beställningsparametrar
+    private string SelectedJuice = "Apple Juice";
+    private int Quantity = 0;
+    private int MoneyPaid = 0;
+    private FruitPressResult? Result;
+
+    // Metod för att bearbeta en beställning
+    private void ProcessOrder()
+    {
+        // Skapa en lista över tillgänglig frukt baserat på lagerstatus
+        var fruits = new List<IFruit>();
+        for (int i = 0; i < AppleStock; i++) fruits.Add(new Fruit { Name = "Apple" });
+        for (int i = 0; i < OrangeStock; i++) fruits.Add(new Fruit { Name = "Orange" });
+        for (int i = 0; i < MelonStock; i++) fruits.Add(new Fruit { Name = "Melon" });
+
+        // Hämta receptet för den valda juicen
+        var recipe = Recipes.FirstOrDefault(r => r.Name == SelectedJuice);
+
+
+        // Anropa tjänsten för att bearbeta beställningen
+        Result = FruitPressService.Produce(recipe, fruits, MoneyPaid, Quantity);
+       
+    }
+}
+}
